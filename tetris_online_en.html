@@ -144,12 +144,34 @@ body.theme-pop{background:#1a0030;}
 .mini-rank-row{display:flex;justify-content:space-between;font-size:.68rem;color:#bbb;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.05);}
 .mini-rank-row.me{color:#ffe94e;}
 .mini-rank-row span.nm{max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ===== Penguin Popup ===== */
+#penguin-popup{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;
+  display:none;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;}
+#penguin-popup.show{display:flex;}
+#penguin-popup .penguin-title{font-size:1.6rem;font-weight:900;color:#ffe94e;
+  text-shadow:0 0 20px #ffe94e;margin-bottom:16px;text-align:center;animation:popIn .4s ease-out;}
+#penguin-popup .penguin-videos{display:flex;gap:20px;align-items:center;}
+#penguin-popup video{width:240px;height:auto;border-radius:16px;
+  box-shadow:0 0 30px rgba(78,240,255,.6);border:3px solid #4ef0ff;}
+#penguin-popup .penguin-hint{font-size:.8rem;color:#aaa;margin-top:14px;}
+@keyframes popIn{from{transform:scale(.5);opacity:0;}to{transform:scale(1);opacity:1;}}
 </style>
 </head>
 <body class="theme-space">
 
 <canvas class="bg-layer" id="bgCanvas"></canvas>
 <div id="level-flash"></div>
+
+<!-- Penguin Popup -->
+<div id="penguin-popup">
+  <div class="penguin-title">🎉 <span id="penguin-milestone-text">10,000</span> Points! 🐧🐧</div>
+  <div class="penguin-videos">
+    <video id="penguin-vid1" src="ペンギンを踊らせる動画.mp4" autoplay loop muted playsinline></video>
+    <video id="penguin-vid2" src="ペンギンを踊らせる動画.mp4" autoplay loop muted playsinline></video>
+  </div>
+  <div class="penguin-hint">Click to close</div>
+</div>
 
 <!-- Navbar -->
 <div id="navbar">
@@ -506,6 +528,7 @@ let board, piece, nextPiece, holdPiece, canHold;
 let score, linesC, level, bestScore, combo, maxCombo, bombGauge;
 let tetrisCount, holdStat, bombStat;
 let running, paused, over, isDailyMode;
+let lastPenguinMilestone = 0;
 let dropTimer = 0, lastTs = 0, animId;
 let ojamaTimer = 0;
 const OJAMA_INTERVAL = 45000;
@@ -534,6 +557,30 @@ const sfxOver  = () => [400, 340, 290, 190].forEach((f, i) => beep(f, 'sawtooth'
 const sfxAch   = () => { beep(880, 'sine', .18, .3); beep(1100, 'sine', .18, .28, .13); };
 const sfxMission = () => { [659, 784, 1047].forEach((f, i) => beep(f, 'sine', .18, .3, i * .09)); };
 const sfxOjama = () => { beep(110, 'sawtooth', .5, .4); beep(150, 'square', .3, .25, .15); };
+
+// ===== Penguin Popup =====
+let penguinCloseTimer = null;
+function showPenguinPopup(milestone) {
+  const popup = document.getElementById('penguin-popup');
+  document.getElementById('penguin-milestone-text').textContent = milestone.toLocaleString();
+  popup.classList.add('show');
+  [document.getElementById('penguin-vid1'), document.getElementById('penguin-vid2')].forEach(v => { v.currentTime = 0; v.play(); });
+  if (penguinCloseTimer) clearTimeout(penguinCloseTimer);
+  penguinCloseTimer = setTimeout(closePenguinPopup, 6000);
+}
+function closePenguinPopup() {
+  const popup = document.getElementById('penguin-popup');
+  popup.classList.remove('show');
+  [document.getElementById('penguin-vid1'), document.getElementById('penguin-vid2')].forEach(v => v.pause());
+  if (penguinCloseTimer) { clearTimeout(penguinCloseTimer); penguinCloseTimer = null; }
+}
+function checkPenguinMilestone() {
+  const milestone = Math.floor(score / 10000) * 10000;
+  if (milestone > 0 && milestone > lastPenguinMilestone) {
+    lastPenguinMilestone = milestone;
+    showPenguinPopup(milestone);
+  }
+}
 
 const BGM_NOTES = {
   space: [262,294,330,349,392,349,330,294,262,294,330,392,440,392,330,294],
@@ -823,7 +870,7 @@ function lockPiece() {
     cleared.forEach(r => spawnParticles(r));
     board = newB; combo++; maxCombo = Math.max(maxCombo, combo);
     const pts = SCORE_TBL[cleared.length] * level * (combo > 1 ? combo : 1);
-    score += pts; linesC += cleared.length;
+    score += pts; linesC += cleared.length; checkPenguinMilestone();
     const prevLv = level; level = Math.floor(linesC / 10) + 1;
     sfxClear(cleared.length);
     if (combo >= 2) { showComboMsg(combo); sfxCombo(combo); }
@@ -856,7 +903,7 @@ function bombAction() {
   resumeAC(); sfxBomb(); bombGauge = 0; bombStat++;
   for (let r = ROWS - 1; r >= ROWS - 3; r--) spawnParticles(r);
   board.splice(ROWS - 3, 3); while (board.length < ROWS) board.unshift(Array(COLS).fill(0));
-  score += 600 * level; showMsg('💥 BOOM!', '#ff6b35');
+  score += 600 * level; checkPenguinMilestone(); showMsg('💥 BOOM!', '#ff6b35');
   checkACH('bomb'); progressM('bombUsed', 1);
 }
 function gameLoop(ts) {
@@ -875,7 +922,7 @@ function gameLoop(ts) {
 }
 async function startGame(daily = false) {
   resumeAC(); cancelAnimationFrame(animId);
-  board = createBoard(); score = 0; linesC = 0; level = 1; combo = 0; maxCombo = 0; bombGauge = 0;
+  board = createBoard(); score = 0; linesC = 0; level = 1; combo = 0; maxCombo = 0; bombGauge = 0; lastPenguinMilestone = 0;
   tetrisCount = 0; holdStat = 0; bombStat = 0; particles = [];
   bestScore = currentUser ? await DB.getUserBest(currentUser.id) : 0;
   holdPiece = null; nextPiece = rndPiece();
@@ -1026,6 +1073,7 @@ document.getElementById('reg-submit').addEventListener('click', async () => {
 // ========================================================
 // Ranking / Help
 // ========================================================
+document.getElementById('penguin-popup').addEventListener('click', closePenguinPopup);
 document.getElementById('help-nav-btn').addEventListener('click', () => document.getElementById('help-modal').classList.add('show'));
 document.getElementById('help-close').addEventListener('click', () => document.getElementById('help-modal').classList.remove('show'));
 document.getElementById('ranking-nav-btn').addEventListener('click', openRanking);
