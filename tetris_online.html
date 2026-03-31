@@ -147,11 +147,11 @@ body.theme-pop{background:#1a0030;}
 .mini-rank-row span.nm{max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* ===== ペンギンポップアップ ===== */
-#penguin-popup{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(260px);
+#penguin-popup{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);
   z-index:9999;display:flex;gap:24px;align-items:flex-end;pointer-events:none;
-  opacity:0;transition:transform .5s cubic-bezier(.175,.885,.32,1.275),opacity .4s;}
-#penguin-popup.show{transform:translateX(-50%) translateY(0);opacity:1;}
-#penguin-popup video{width:180px;height:auto;border-radius:0;}
+  opacity:0;transition:opacity .4s;}
+#penguin-popup.show{opacity:1;}
+#penguin-popup video{width:180px;height:auto;}
 </style>
 </head>
 <body class="theme-space">
@@ -161,8 +161,8 @@ body.theme-pop{background:#1a0030;}
 
 <!-- ペンギンポップアップ -->
 <div id="penguin-popup">
-  <video id="penguin-vid1" muted playsinline></video>
-  <video id="penguin-vid2" muted playsinline></video>
+  <video id="penguin-vid1" src="ペンギンを踊らせる動画.mp4" loop muted playsinline preload="auto"></video>
+  <video id="penguin-vid2" src="ペンギンを踊らせる動画.mp4" loop muted playsinline preload="auto"></video>
 </div>
 
 <!-- ナビバー -->
@@ -553,22 +553,19 @@ const sfxOjama = () => { beep(110, 'sawtooth', .5, .4); beep(150, 'square', .3, 
 
 // ===== ペンギンポップアップ =====
 let penguinCloseTimer = null;
-const PENGUIN_SRC = 'ペンギンを踊らせる動画.mp4';
 function showPenguinPopup() {
-  const popup = document.getElementById('penguin-popup');
   const vids = [document.getElementById('penguin-vid1'), document.getElementById('penguin-vid2')];
-  vids.forEach(v => { v.src = PENGUIN_SRC; v.currentTime = 0; v.play().catch(() => {}); });
-  popup.classList.add('show');
+  vids.forEach(v => { v.currentTime = 0; v.play().catch(() => {}); });
+  document.getElementById('penguin-popup').classList.add('show');
   if (penguinCloseTimer) clearTimeout(penguinCloseTimer);
   penguinCloseTimer = setTimeout(closePenguinPopup, 6000);
 }
 function closePenguinPopup() {
-  const popup = document.getElementById('penguin-popup');
-  popup.classList.remove('show');
+  document.getElementById('penguin-popup').classList.remove('show');
   if (penguinCloseTimer) { clearTimeout(penguinCloseTimer); penguinCloseTimer = null; }
   setTimeout(() => {
-    [document.getElementById('penguin-vid1'), document.getElementById('penguin-vid2')].forEach(v => { v.pause(); v.removeAttribute('src'); });
-  }, 500);
+    [document.getElementById('penguin-vid1'), document.getElementById('penguin-vid2')].forEach(v => v.pause());
+  }, 400);
 }
 function checkPenguinMilestone() {
   const milestone = Math.floor(score / 10000) * 10000;
