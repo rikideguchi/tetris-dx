@@ -147,16 +147,11 @@ body.theme-pop{background:#1a0030;}
 .mini-rank-row span.nm{max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* ===== ペンギンポップアップ ===== */
-#penguin-popup{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;
-  display:none;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;}
-#penguin-popup.show{display:flex;}
-#penguin-popup .penguin-title{font-size:1.6rem;font-weight:900;color:#ffe94e;
-  text-shadow:0 0 20px #ffe94e;margin-bottom:16px;text-align:center;animation:popIn .4s ease-out;}
-#penguin-popup .penguin-videos{display:flex;gap:20px;align-items:center;}
-#penguin-popup video{width:240px;height:auto;border-radius:16px;
-  box-shadow:0 0 30px rgba(78,240,255,.6);border:3px solid #4ef0ff;}
-#penguin-popup .penguin-hint{font-size:.8rem;color:#aaa;margin-top:14px;}
-@keyframes popIn{from{transform:scale(.5);opacity:0;}to{transform:scale(1);opacity:1;}}
+#penguin-popup{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(260px);
+  z-index:9999;display:flex;gap:24px;align-items:flex-end;pointer-events:none;
+  opacity:0;transition:transform .5s cubic-bezier(.175,.885,.32,1.275),opacity .4s;}
+#penguin-popup.show{transform:translateX(-50%) translateY(0);opacity:1;}
+#penguin-popup video{width:180px;height:auto;border-radius:0;}
 </style>
 </head>
 <body class="theme-space">
@@ -166,12 +161,8 @@ body.theme-pop{background:#1a0030;}
 
 <!-- ペンギンポップアップ -->
 <div id="penguin-popup">
-  <div class="penguin-title">🎉 <span id="penguin-milestone-text">10,000点</span> 達成！ 🐧🐧</div>
-  <div class="penguin-videos">
-    <video id="penguin-vid1" src="ペンギンを踊らせる動画.mp4" autoplay loop muted playsinline></video>
-    <video id="penguin-vid2" src="ペンギンを踊らせる動画.mp4" autoplay loop muted playsinline></video>
-  </div>
-  <div class="penguin-hint">クリックして閉じる</div>
+  <video id="penguin-vid1" muted playsinline></video>
+  <video id="penguin-vid2" muted playsinline></video>
 </div>
 
 <!-- ナビバー -->
@@ -562,25 +553,28 @@ const sfxOjama = () => { beep(110, 'sawtooth', .5, .4); beep(150, 'square', .3, 
 
 // ===== ペンギンポップアップ =====
 let penguinCloseTimer = null;
-function showPenguinPopup(milestone) {
+const PENGUIN_SRC = 'ペンギンを踊らせる動画.mp4';
+function showPenguinPopup() {
   const popup = document.getElementById('penguin-popup');
-  document.getElementById('penguin-milestone-text').textContent = milestone.toLocaleString() + '点';
+  const vids = [document.getElementById('penguin-vid1'), document.getElementById('penguin-vid2')];
+  vids.forEach(v => { v.src = PENGUIN_SRC; v.currentTime = 0; v.play().catch(() => {}); });
   popup.classList.add('show');
-  [document.getElementById('penguin-vid1'), document.getElementById('penguin-vid2')].forEach(v => { v.currentTime = 0; v.play(); });
   if (penguinCloseTimer) clearTimeout(penguinCloseTimer);
   penguinCloseTimer = setTimeout(closePenguinPopup, 6000);
 }
 function closePenguinPopup() {
   const popup = document.getElementById('penguin-popup');
   popup.classList.remove('show');
-  [document.getElementById('penguin-vid1'), document.getElementById('penguin-vid2')].forEach(v => v.pause());
   if (penguinCloseTimer) { clearTimeout(penguinCloseTimer); penguinCloseTimer = null; }
+  setTimeout(() => {
+    [document.getElementById('penguin-vid1'), document.getElementById('penguin-vid2')].forEach(v => { v.pause(); v.removeAttribute('src'); });
+  }, 500);
 }
 function checkPenguinMilestone() {
   const milestone = Math.floor(score / 10000) * 10000;
   if (milestone > 0 && milestone > lastPenguinMilestone) {
     lastPenguinMilestone = milestone;
-    showPenguinPopup(milestone);
+    showPenguinPopup();
   }
 }
 
@@ -1076,7 +1070,6 @@ document.getElementById('reg-submit').addEventListener('click', async () => {
 // ========================================================
 // ランキングモーダル / ヘルプ
 // ========================================================
-document.getElementById('penguin-popup').addEventListener('click', closePenguinPopup);
 document.getElementById('help-nav-btn').addEventListener('click', () => document.getElementById('help-modal').classList.add('show'));
 document.getElementById('help-close').addEventListener('click', () => document.getElementById('help-modal').classList.remove('show'));
 document.getElementById('ranking-nav-btn').addEventListener('click', openRanking);
